@@ -1,0 +1,65 @@
+name: Build AppImage
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+
+    steps:
+      - name: Install Build Dependencies
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm git cmake extra-cmake-modules qt6-base qt6-tools \
+                                polkit-qt6 base-devel wget file
+
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Prepare linuxdeploy
+        run: |
+          mkdir -p bin
+          cd bin
+          wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          wget https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          chmod +x linuxdeploy*.AppImage
+          # We need to extract them because AppImages don't run inside most containers directly
+          ./linuxdeploy-x86_64.AppImage --appimage-extract
+          ./linuxdeploy-plugin-qt-x86_64.AppImage --appimage-extract
+          mv squashfs-root/ linuxdeploy-root/
+
+      - name: Build scx-manager
+        run: |
+          mkdir build && cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+          make -j$(nproc)
+          make DESTDIR=$(pwd)/AppDir install
+
+      - name: Package AppImage
+        env:
+          NO_STRIP: 1
+          PATH: "${{ github.workspace }}/bin/linuxdeploy-root/usr/bin:${{ github.workspace }}/build:${PATH}"
+          LD_LIBRARY_PATH: "${{ github.workspace }}/build:${LD_LIBRARY_PATH}"
+        run: |
+          cd build
+          # Copy custom library into AppDir so it's bundled
+          mkdir -p AppDir/usr/lib/
+          cp libscxctl-ui.so.1 AppDir/usr/lib/
+          
+          # Run the extracted linuxdeploy
+          ../bin/linuxdeploy-root/usr/bin/linuxdeploy --appdir AppDir \
+            --plugin qt \
+            --output appimage
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: scx-manager-appimage
+          path: build/*.AppImage
