@@ -21,7 +21,11 @@ jobs:
         run: |
           pacman -Syu --noconfirm
           pacman -S --noconfirm git cmake extra-cmake-modules qt6-base qt6-tools \
-                            polkit-qt6 base-devel wget file
+                            polkit-qt6 base-devel wget file rustup
+
+      - name: Setup Rust
+        run: |
+            rustup default stable
 
       - name: Clone scx-manager
         run: |
