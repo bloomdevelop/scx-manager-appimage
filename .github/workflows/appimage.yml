@@ -53,12 +53,13 @@ jobs:
       - name: Package AppImage
         env:
           NO_STRIP: 1
-          PATH: "${{ github.workspace }}/bin/linuxdeploy-root/usr/bin:${{ github.workspace }}/scx-manager/build:${PATH}"
-          LD_LIBRARY_PATH: "${{ github.workspace }}/scx-manager/build:${LD_LIBRARY_PATH}"
         run: |
           cd scx-manager/build
           mkdir -p AppDir/usr/lib/
           cp libscxctl-ui.so.1 AppDir/usr/lib/
+
+          export PATH="$GITHUB_WORKSPACE/bin/linuxdeploy-root/usr/bin:$PWD:$PATH"
+          export LD_LIBRARY_PATH="$PWD:$LD_LIBRARY_PATH"
           
           ../../bin/linuxdeploy-root/usr/bin/linuxdeploy --appdir AppDir \
             --plugin qt \
