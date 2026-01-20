@@ -17,16 +17,15 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         
-      - name: Clone scx-manager
-        run: |
-          git clone https://github.com/CachyOS/scx-manager.git
-        
       - name: Install Build Dependencies
         run: |
           pacman -Syu --noconfirm
           pacman -S --noconfirm git cmake extra-cmake-modules qt6-base qt6-tools \
                             polkit-qt6 base-devel wget file
 
+      - name: Clone scx-manager
+        run: |
+          git clone https://github.com/CachyOS/scx-manager.git
 
       - name: Prepare linuxdeploy
         run: |
