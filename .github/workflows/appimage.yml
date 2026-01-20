@@ -14,14 +14,19 @@ jobs:
       image: archlinux:latest
 
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        
+      - name: Clone scx-manager
+        run: |
+          git clone https://github.com/CachyOS/scx-manager.git
+        
       - name: Install Build Dependencies
         run: |
           pacman -Syu --noconfirm
           pacman -S --noconfirm git cmake extra-cmake-modules qt6-base qt6-tools \
-                                polkit-qt6 base-devel wget file
+                            polkit-qt6 base-devel wget file
 
-      - name: Checkout Code
-        uses: actions/checkout@v4
 
       - name: Prepare linuxdeploy
         run: |
@@ -30,13 +35,13 @@ jobs:
           wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
           wget https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
           chmod +x linuxdeploy*.AppImage
-          # We need to extract them because AppImages don't run inside most containers directly
           ./linuxdeploy-x86_64.AppImage --appimage-extract
           ./linuxdeploy-plugin-qt-x86_64.AppImage --appimage-extract
           mv squashfs-root/ linuxdeploy-root/
 
       - name: Build scx-manager
         run: |
+          cd scx-manager
           mkdir build && cd build
           cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
           make -j$(nproc)
@@ -45,16 +50,14 @@ jobs:
       - name: Package AppImage
         env:
           NO_STRIP: 1
-          PATH: "${{ github.workspace }}/bin/linuxdeploy-root/usr/bin:${{ github.workspace }}/build:${PATH}"
-          LD_LIBRARY_PATH: "${{ github.workspace }}/build:${LD_LIBRARY_PATH}"
+          PATH: "${{ github.workspace }}/bin/linuxdeploy-root/usr/bin:${{ github.workspace }}/scx-manager/build:${PATH}"
+          LD_LIBRARY_PATH: "${{ github.workspace }}/scx-manager/build:${LD_LIBRARY_PATH}"
         run: |
-          cd build
-          # Copy custom library into AppDir so it's bundled
+          cd scx-manager/build
           mkdir -p AppDir/usr/lib/
           cp libscxctl-ui.so.1 AppDir/usr/lib/
           
-          # Run the extracted linuxdeploy
-          ../bin/linuxdeploy-root/usr/bin/linuxdeploy --appdir AppDir \
+          ../../bin/linuxdeploy-root/usr/bin/linuxdeploy --appdir AppDir \
             --plugin qt \
             --output appimage
 
@@ -62,4 +65,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: scx-manager-appimage
-          path: build/*.AppImage
+          path: scx-manager/build/*.AppImage
