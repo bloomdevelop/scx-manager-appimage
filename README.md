@@ -4,7 +4,7 @@
 
 An unofficial AppImage version of CachyOS's scx-manager, packaged via linuxdeploy.
 
-> [!WARNING] This is not an official version of CachyOS's scx-manager. This project is not affiliated with CachyOS team in either way. Use at your own risk.
+> This is not an official version of CachyOS's scx-manager. This project is not affiliated with CachyOS team in either way. Use at your own risk.
 
 
 
